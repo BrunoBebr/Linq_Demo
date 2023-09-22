@@ -17,43 +17,114 @@ internal class Program
             LonM = Int32.Parse(m[5]),
             LonS = Int32.Parse(m[6]),
             EW = m[7],
-            City = m[8],
+            City = m[8].Trim(new char[] { ' ', '"' }),
             State = m[9].Trim(new char[] { ' ' })
         }).ToList();
 
-      
+
         var y = states.Skip(1).Select(d => d.Split(",")).Select(d => new statesModel()
         {
-            State = d[0],
+            State = d[0].Trim('"'),
             Abbreviation = d[1].Trim('"')
         }).ToList();
 
-        //CitiesTexas(x);
+        bool exitToken = false;
+        int limit = 0;
+        int start = 0;
+        int pageNum = 1;
 
-        //CitiesByState(x);
 
-        //DistinctStates(x, y);
 
-        //CombinedName(x, y);
+        Console.Write("Pocet zaznamu na strance –>");
+        while (limit == 0)
+        {
+            try
+            {
+                limit = Int32.Parse(Console.ReadLine()!);
+            }
+            catch
+            {
+                Console.WriteLine("Toto neni cislo!");
+            }
+        }
 
-        Console.ReadLine();
+        List<string> items = CitiesTexas(x);
+
+        // List<string> items = CitiesByState(x);
+
+        // List<string> items = DistinctStates(x, y);
+
+        // List<string> items = CombinedName(x, y);
+
+        int pages = items.Count() / limit;
+
+        if (pages == 0)
+        {
+            pages = 1;
+        }
+
+        while (!exitToken)
+        {
+            start = (pageNum * limit) - limit;
+
+            Console.Clear();
+
+            Console.WriteLine("=========== Page no." + pageNum + " of " + pages + " ===========\n");
+
+            items.Skip(start).Take(limit).ToList().ForEach(x =>
+            {
+                Console.WriteLine(x);
+            });
+
+
+            bool state = false;
+
+            while (!state)
+            {
+
+                Console.WriteLine("\n========= [int] jump to page =========");
+                var inp = Console.ReadLine();
+
+                if(Int32.TryParse(inp, out int input))
+                {
+                    if (input > 0 && input <= pages)
+                    {
+                        pageNum = input;
+                        state = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Number is out of range!");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Input is not number!");
+                }
+            }
+        }
     }
 
-   public static void CitiesTexas(List<citiesModel> cities)
+   public static List<string> CitiesTexas(List<citiesModel> cities)
     {
-        cities.Where(n => n.State.Equals(" TX"))
-                            .OrderByDescending(x => x.LatD)
+        List<string> items = new List<string> { };
+
+        cities.Where(n => n.State.Equals("TX"))
+                            .OrderByDescending(x => x.LatD)                    
                             .ToList().ForEach(item =>
                             {
-                                Console.WriteLine(item.City.Trim(new char[] { ' ', '"' }));
+                                items.Add(item.City);
                             });
+        return items;
     }
 
     public static void CitiesByState(List<citiesModel> cities)
     {
+        List<string> items = new List<string> { };
+
         cities.OrderBy(n => n.State).ToList().ForEach(item =>
         {
-            Console.WriteLine(item.City.Trim(new char[] { ' ', '"' }) + "-" + item.State.Trim(new char[] {' '}));
+            items.Add(item.City + "-" + item.State);
         });
 
         Console.WriteLine();
@@ -62,29 +133,33 @@ internal class Program
               .ToList()
               .ForEach(item =>
                 {
-                    Console.WriteLine(item.City.Trim(new char[] { ' ', '"' }) + "-" + item.State.Trim(new char[] { ' ' }));
+                    Console.WriteLine(item.City + "-" + item.State);
         });
     }
 
     public static void DistinctStates(List<citiesModel> cities, List<statesModel> states)
     {
+        List<string> items = new List<string> { };
+
         cities.Join(
             states,
             cities => cities.State,
             states => states.Abbreviation,
-            (cities, states) => new { states.State })
+            (cities, states) => new { states.State})
             .GroupBy(n => n.State)
-            .Distinct()
+            .Select(group => new {group.Key, count = group.Count()})
             .OrderByDescending(
-                n => n.Count())
+                n => n.count)
              .ToList().ForEach(item =>
                 {
-                   Console.WriteLine(item.Key.Trim('"') + " contains " + item.Count() + " cities");
+                   items.Add(item.Key + " contains " + item.count + " cities");
              });
     }
 
     public static void CombinedName(List<citiesModel> cities, List<statesModel> states)
     {
+        List<string> items = new List<string> { };
+
         cities.Join(
             states,
             cities => cities.State,
@@ -93,7 +168,7 @@ internal class Program
             .ToList()
             .ForEach(item =>
             {
-                Console.WriteLine("City: " + item.City.Trim('"', ' ') + "\n -> Position\n  LatD: " + item.LatD + "\n  LonD: " + item.LonD + "\n -> State: " + item.State.Trim('"') + "\n");
+                items.Add("City: " + item.City + "\n -> Position\n  LatD: " + item.LatD + "\n  LonD: " + item.LonD + "\n -> State: " + item.State + "\n");
             });
     }
 }
